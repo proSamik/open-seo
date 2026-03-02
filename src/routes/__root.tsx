@@ -199,19 +199,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                   position="bottom-right"
                   mobileOffset={{ bottom: 100 }}
                 />
-                {import.meta.env.DEV ? (
-                  <TanStackDevtools
-                    config={{ position: "bottom-right" }}
-                    eventBusConfig={{ connectToServerBus: true }}
-                    plugins={[
-                      {
-                        name: "TanStack Router",
-                        render: <TanStackRouterDevtoolsPanel />,
-                        defaultOpen: true,
-                      },
-                    ]}
-                  />
-                ) : null}
               </>
             </EmbeddedAppProvider>
           </QueryClientProvider>
