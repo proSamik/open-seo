@@ -6,9 +6,10 @@ import { useForm } from "@tanstack/react-form";
 import { sortBy } from "remeda";
 import { getBacklinksOverview } from "@/serverFunctions/backlinks";
 import { backlinksSearchSchema } from "@/types/schemas/backlinks";
-import { Search, Globe, AlertCircle, Download, ChevronDown, Copy } from "lucide-react";
+import { Search, Globe, AlertCircle, Download, ChevronDown, Copy, History, Clock, X } from "lucide-react";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { toast } from "sonner";
+import { useBacklinkSearchHistory } from "@/client/hooks/useBacklinkSearchHistory";
 
 function csvEscape(value: string | number | null | undefined | boolean): string {
   if (value == null) return "";
@@ -80,7 +81,7 @@ type SortMode = BacklinksControlsValues["sort"];
 type SortOrder = "asc" | "desc";
 
 function BacklinksPage() {
-  // Route.useParams is not really needed if we don't use it, but keeping it empty is fine.
+  const { projectId } = Route.useParams();
 
   // URL search params
   const {
@@ -106,6 +107,14 @@ function BacklinksPage() {
       sort: sortMode,
     } as BacklinksControlsValues,
   });
+
+  const {
+    history,
+    isLoaded: historyLoaded,
+    addSearch,
+    clearHistory,
+    removeHistoryItem,
+  } = useBacklinkSearchHistory(projectId);
 
   // Sync back to pending
   useEffect(() => {
@@ -227,6 +236,12 @@ function BacklinksPage() {
       {
         onSuccess: (response) => {
           setResult(response);
+          addSearch({
+            domain: rawTarget,
+            subdomains: values.subdomains,
+            sort: values.sort,
+            search: pendingSearch.trim() || undefined,
+          });
         },
         onError: (error) => {
           setOverviewError(getStandardErrorMessage(error, "Lookup failed."));
@@ -336,12 +351,124 @@ function BacklinksPage() {
             <span className="loading loading-spinner text-primary"></span>
           </div>
         ) : result === null ? (
-          <section className="rounded-2xl border border-dashed border-base-300 bg-base-100/70 p-12 text-center text-base-content/55 space-y-2 mt-8">
-            <Globe className="size-12 mx-auto opacity-30" />
-            <p className="text-base font-medium text-base-content/80 mt-4">
-              Enter a domain to view its backlink profile
-            </p>
-          </section>
+          <div className="space-y-4 pt-1 mt-4">
+            {historyLoaded && history.length > 0 ? (
+              <section className="rounded-2xl border border-base-300 bg-base-100 p-5 md:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <History className="size-4 text-base-content/45" />
+                    <span className="text-sm text-base-content/60">
+                      {history.length} recent search
+                      {history.length !== 1 ? "es" : ""}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-xs text-error"
+                    onClick={clearHistory}
+                  >
+                    Clear all
+                  </button>
+                </div>
+
+                <div className="grid gap-2">
+                  {history.map((item) => (
+                    <div
+                      key={item.timestamp}
+                      className="flex items-center justify-between p-3 rounded-lg border border-base-300 bg-base-100 hover:bg-base-200 transition-colors text-left group cursor-pointer"
+                      onClick={() => {
+                        const updates = {
+                          domain: item.domain,
+                          subdomains: item.subdomains ? undefined : false,
+                          sort: item.sort,
+                          order: undefined,
+                          search: item.search?.trim() ? item.search : undefined,
+                        };
+
+                        controlsForm.setFieldValue("domain", item.domain);
+                        controlsForm.setFieldValue(
+                          "subdomains",
+                          item.subdomains,
+                        );
+                        controlsForm.setFieldValue("sort", item.sort);
+                        setPendingSearch(item.search ?? "");
+                        setSearchParams(updates);
+
+                        // Update URL
+                        setSearchParams({
+                          domain: item.domain,
+                          subdomains: item.subdomains ? undefined : false,
+                          sort: item.sort,
+                          search: item.search?.trim() || undefined,
+                        });
+
+                        backlinksMutation.mutate(
+                          {
+                            target: item.domain,
+                            includeSubdomains: item.subdomains,
+                          },
+                          {
+                            onSuccess: (response) => {
+                              setResult(response);
+                              addSearch({
+                                domain: item.domain,
+                                subdomains: item.subdomains,
+                                sort: item.sort,
+                                search: item.search?.trim() || undefined,
+                              });
+                            },
+                            onError: (error) => {
+                              setOverviewError(
+                                getStandardErrorMessage(error, "Lookup failed."),
+                              );
+                            },
+                          },
+                        );
+                      }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Clock className="size-4 text-base-content/40 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-base-content truncate">
+                            {item.domain}
+                          </p>
+                          <p className="text-sm text-base-content/60 truncate">
+                            {item.subdomains
+                              ? "Include subdomains"
+                              : "Root domain only"}
+                            {item.search?.trim() ? ` - ${item.search}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-base-content/40">
+                          {new Date(item.timestamp).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric" },
+                          )}
+                        </span>
+                        <button
+                          className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 p-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeHistoryItem(item.timestamp);
+                          }}
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="rounded-2xl border border-dashed border-base-300 bg-base-100/70 p-12 text-center text-base-content/55 space-y-2">
+                <Globe className="size-12 mx-auto opacity-30" />
+                <p className="text-base font-medium text-base-content/80 mt-4">
+                  Enter a domain to view its backlink profile
+                </p>
+              </section>
+            )}
+          </div>
         ) : !result.hasData || filteredData.length === 0 ? (
           <div className="alert alert-info mt-8">
             <span>No backlinks found for this search criteria.</span>
