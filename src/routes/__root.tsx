@@ -90,9 +90,10 @@ function AppLayout() {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   // Extract projectId from the current path
   const projectIdMatch = location.pathname.match(/^\/p\/([^/]+)/);
