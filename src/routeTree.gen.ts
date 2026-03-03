@@ -15,6 +15,7 @@ import { Route as PProjectIdIndexRouteImport } from './routes/p/$projectId/index
 import { Route as PProjectIdSavedRouteImport } from './routes/p/$projectId/saved'
 import { Route as PProjectIdKeywordsRouteImport } from './routes/p/$projectId/keywords'
 import { Route as PProjectIdDomainRouteImport } from './routes/p/$projectId/domain'
+import { Route as PProjectIdBacklinksRouteImport } from './routes/p/$projectId/backlinks'
 import { Route as PProjectIdAuditRouteImport } from './routes/p/$projectId/audit'
 import { Route as PProjectIdAiRouteImport } from './routes/p/$projectId/ai'
 import { Route as PProjectIdAuditIndexRouteImport } from './routes/p/$projectId/audit/index'
@@ -51,6 +52,11 @@ const PProjectIdDomainRoute = PProjectIdDomainRouteImport.update({
   path: '/domain',
   getParentRoute: () => PProjectIdRouteRoute,
 } as any)
+const PProjectIdBacklinksRoute = PProjectIdBacklinksRouteImport.update({
+  id: '/backlinks',
+  path: '/backlinks',
+  getParentRoute: () => PProjectIdRouteRoute,
+} as any)
 const PProjectIdAuditRoute = PProjectIdAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/p/$projectId': typeof PProjectIdRouteRouteWithChildren
   '/p/$projectId/ai': typeof PProjectIdAiRoute
   '/p/$projectId/audit': typeof PProjectIdAuditRouteWithChildren
+  '/p/$projectId/backlinks': typeof PProjectIdBacklinksRoute
   '/p/$projectId/domain': typeof PProjectIdDomainRoute
   '/p/$projectId/keywords': typeof PProjectIdKeywordsRoute
   '/p/$projectId/saved': typeof PProjectIdSavedRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/p/$projectId/ai': typeof PProjectIdAiRoute
+  '/p/$projectId/backlinks': typeof PProjectIdBacklinksRoute
   '/p/$projectId/domain': typeof PProjectIdDomainRoute
   '/p/$projectId/keywords': typeof PProjectIdKeywordsRoute
   '/p/$projectId/saved': typeof PProjectIdSavedRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/p/$projectId': typeof PProjectIdRouteRouteWithChildren
   '/p/$projectId/ai': typeof PProjectIdAiRoute
   '/p/$projectId/audit': typeof PProjectIdAuditRouteWithChildren
+  '/p/$projectId/backlinks': typeof PProjectIdBacklinksRoute
   '/p/$projectId/domain': typeof PProjectIdDomainRoute
   '/p/$projectId/keywords': typeof PProjectIdKeywordsRoute
   '/p/$projectId/saved': typeof PProjectIdSavedRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/p/$projectId'
     | '/p/$projectId/ai'
     | '/p/$projectId/audit'
+    | '/p/$projectId/backlinks'
     | '/p/$projectId/domain'
     | '/p/$projectId/keywords'
     | '/p/$projectId/saved'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/p/$projectId/ai'
+    | '/p/$projectId/backlinks'
     | '/p/$projectId/domain'
     | '/p/$projectId/keywords'
     | '/p/$projectId/saved'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/p/$projectId'
     | '/p/$projectId/ai'
     | '/p/$projectId/audit'
+    | '/p/$projectId/backlinks'
     | '/p/$projectId/domain'
     | '/p/$projectId/keywords'
     | '/p/$projectId/saved'
@@ -206,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PProjectIdDomainRouteImport
       parentRoute: typeof PProjectIdRouteRoute
     }
+    '/p/$projectId/backlinks': {
+      id: '/p/$projectId/backlinks'
+      path: '/backlinks'
+      fullPath: '/p/$projectId/backlinks'
+      preLoaderRoute: typeof PProjectIdBacklinksRouteImport
+      parentRoute: typeof PProjectIdRouteRoute
+    }
     '/p/$projectId/audit': {
       id: '/p/$projectId/audit'
       path: '/audit'
@@ -261,6 +280,7 @@ const PProjectIdAuditRouteWithChildren = PProjectIdAuditRoute._addFileChildren(
 interface PProjectIdRouteRouteChildren {
   PProjectIdAiRoute: typeof PProjectIdAiRoute
   PProjectIdAuditRoute: typeof PProjectIdAuditRouteWithChildren
+  PProjectIdBacklinksRoute: typeof PProjectIdBacklinksRoute
   PProjectIdDomainRoute: typeof PProjectIdDomainRoute
   PProjectIdKeywordsRoute: typeof PProjectIdKeywordsRoute
   PProjectIdSavedRoute: typeof PProjectIdSavedRoute
@@ -271,6 +291,7 @@ interface PProjectIdRouteRouteChildren {
 const PProjectIdRouteRouteChildren: PProjectIdRouteRouteChildren = {
   PProjectIdAiRoute: PProjectIdAiRoute,
   PProjectIdAuditRoute: PProjectIdAuditRouteWithChildren,
+  PProjectIdBacklinksRoute: PProjectIdBacklinksRoute,
   PProjectIdDomainRoute: PProjectIdDomainRoute,
   PProjectIdKeywordsRoute: PProjectIdKeywordsRoute,
   PProjectIdSavedRoute: PProjectIdSavedRoute,

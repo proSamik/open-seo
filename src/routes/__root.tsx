@@ -8,8 +8,7 @@ import {
   Outlet,
   useLocation,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
+
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as React from "react";
 import { useState } from "react";

@@ -22,4 +22,8 @@ export const domainSearchSchema = z.object({
   order: z.enum(domainSortOrders).optional(),
   tab: z.enum(domainTabs).optional(),
   search: z.string().optional(),
+  minVol: z.string().optional(),
+  maxVol: z.string().optional(),
+  minKd: z.string().optional(),
+  maxKd: z.string().optional(),
 });

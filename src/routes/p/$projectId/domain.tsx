@@ -60,6 +60,10 @@ type DomainControlsValues = {
   domain: string;
   subdomains: boolean;
   sort: "rank" | "traffic" | "volume";
+  minKd: string;
+  maxKd: string;
+  minVol: string;
+  maxVol: string;
 };
 
 type DomainSortMode = DomainControlsValues["sort"];
@@ -77,6 +81,10 @@ function DomainOverviewPage() {
     order: sortOrder,
     tab: activeTab = "keywords",
     search: searchText = "",
+    minKd = "",
+    maxKd = "",
+    minVol = "",
+    maxVol = "",
   } = Route.useSearch();
   const currentSortOrder = resolveSortOrder(sortMode, sortOrder);
   const navigate = useNavigate({ from: Route.fullPath });
@@ -91,6 +99,10 @@ function DomainOverviewPage() {
       domain: domainInput,
       subdomains: includeSubdomains,
       sort: sortMode,
+      minKd,
+      maxKd,
+      minVol,
+      maxVol,
     } as DomainControlsValues,
   });
 
@@ -107,8 +119,12 @@ function DomainOverviewPage() {
     controlsForm.setFieldValue("domain", domainInput);
     controlsForm.setFieldValue("subdomains", includeSubdomains);
     controlsForm.setFieldValue("sort", sortMode);
+    controlsForm.setFieldValue("minKd", minKd);
+    controlsForm.setFieldValue("maxKd", maxKd);
+    controlsForm.setFieldValue("minVol", minVol);
+    controlsForm.setFieldValue("maxVol", maxVol);
     setPendingSearch(searchText);
-  }, [controlsForm, domainInput, includeSubdomains, searchText, sortMode]);
+  }, [controlsForm, domainInput, includeSubdomains, searchText, sortMode, minKd, maxKd, minVol, maxVol]);
 
   // One-time URL normalization for old links with empty/default params.
   useEffect(() => {
@@ -201,13 +217,24 @@ function DomainOverviewPage() {
 
   const filteredKeywords = useMemo(() => {
     const source = overview?.keywords ?? [];
-    const filtered = !pendingSearch
-      ? source
-      : source.filter((row) => {
-          const haystack =
-            `${row.keyword} ${row.relativeUrl ?? ""}`.toLowerCase();
-          return haystack.includes(pendingSearch.toLowerCase().trim());
-        });
+    const filtered = source.filter((row) => {
+      if (pendingSearch) {
+        const haystack = `${row.keyword} ${row.relativeUrl ?? ""}`.toLowerCase();
+        if (!haystack.includes(pendingSearch.toLowerCase().trim())) {
+          return false;
+        }
+      }
+
+      const kd = row.keywordDifficulty ?? 0;
+      const vol = row.searchVolume ?? 0;
+      
+      if (minKd && kd < Number(minKd)) return false;
+      if (maxKd && kd > Number(maxKd)) return false;
+      if (minVol && vol < Number(minVol)) return false;
+      if (maxVol && vol > Number(maxVol)) return false;
+
+      return true;
+    });
 
     if (sortMode === "traffic") {
       return sortBy(filtered, [
@@ -227,7 +254,7 @@ function DomainOverviewPage() {
       (row) => sortableNullableNumber(row.position, currentSortOrder),
       currentSortOrder,
     ]);
-  }, [currentSortOrder, overview?.keywords, pendingSearch, sortMode]);
+  }, [currentSortOrder, overview?.keywords, pendingSearch, sortMode, minKd, maxKd, minVol, maxVol]);
 
   const filteredPages = useMemo(() => {
     const source = overview?.pages ?? [];
@@ -401,6 +428,10 @@ function DomainOverviewPage() {
       sort: toSortSearchParam(activeSort),
       order: toSortOrderSearchParam(activeSort, activeOrder),
       tab: activeTabValue === "keywords" ? undefined : activeTabValue,
+      minKd: values.minKd ? values.minKd : undefined,
+      maxKd: values.maxKd ? values.maxKd : undefined,
+      minVol: values.minVol ? values.minVol : undefined,
+      maxVol: values.maxVol ? values.maxVol : undefined,
     };
     searchUpdates.search = activeSearch.trim() || undefined;
 
@@ -539,6 +570,78 @@ function DomainOverviewPage() {
                 </controlsForm.Field>
                 <span className="label-text">Include subdomains</span>
               </label>
+            </div>
+          </div>
+          
+          {/* New Filters Area */}
+          <div className="bg-base-200/50 border-t border-base-300 px-4 py-3">
+            <div className="flex flex-wrap gap-4 items-center">
+              <span className="text-sm font-medium text-base-content/70">Filters:</span>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-base-content/60">KD</span>
+                <controlsForm.Field name="minKd">
+                  {(field) => (
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="input input-bordered input-xs w-16"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  )}
+                </controlsForm.Field>
+                <span className="text-xs text-base-content/40">-</span>
+                <controlsForm.Field name="maxKd">
+                  {(field) => (
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="input input-bordered input-xs w-16"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  )}
+                </controlsForm.Field>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-base-content/60">Volume</span>
+                <controlsForm.Field name="minVol">
+                  {(field) => (
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="input input-bordered input-xs w-20"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  )}
+                </controlsForm.Field>
+                <span className="text-xs text-base-content/40">-</span>
+                <controlsForm.Field name="maxVol">
+                  {(field) => (
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="input input-bordered input-xs w-20"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  )}
+                </controlsForm.Field>
+              </div>
+
+              <div className="flex-1 shrink-0 flex justify-end">
+                <button 
+                  type="submit" 
+                  onClick={handleSearchSubmit}
+                  className="btn btn-secondary btn-sm"
+                  disabled={isLoading}
+                >
+                  Apply Filters
+                </button>
+              </div>
             </div>
           </div>
         </div>

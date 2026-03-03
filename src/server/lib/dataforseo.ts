@@ -6,6 +6,8 @@ import {
   DataforseoLabsGoogleDomainRankOverviewLiveRequestInfo,
   DataforseoLabsGoogleRankedKeywordsLiveRequestInfo,
   DataforseoLabsGoogleHistoricalSerpsLiveRequestInfo,
+  BacklinksApi,
+  BacklinksBacklinksLiveRequestInfo,
 } from "dataforseo-client";
 import { env } from "cloudflare:workers";
 import { AppError } from "@/server/lib/errors";
@@ -31,6 +33,10 @@ const API_BASE = "https://api.dataforseo.com";
 
 function getLabsApi() {
   return new DataforseoLabsApi(API_BASE, { fetch: createAuthenticatedFetch() });
+}
+
+function getBacklinksApi() {
+  return new BacklinksApi(API_BASE, { fetch: createAuthenticatedFetch() });
 }
 
 // ---------------------------------------------------------------------------
@@ -401,4 +407,40 @@ function toRootDomain(host: string): string {
   }
 
   return lastTwo;
+}
+
+// ---------------------------------------------------------------------------
+// Backlinks API wrapper
+// ---------------------------------------------------------------------------
+
+export type BacklinksLiveItem = {
+  url_from?: string | null;
+  url_to?: string | null;
+  anchor?: string | null;
+  domain_from?: string | null;
+  domain_from_rank?: number | null;
+  page_from_rank?: number | null;
+  dofollow?: boolean | null;
+  first_seen?: string | null;
+};
+
+export async function fetchBacklinksRaw(
+  target: string,
+  limit: number,
+  orderBy?: string[],
+): Promise<BacklinksLiveItem[]> {
+  const api = getBacklinksApi();
+  const req = new BacklinksBacklinksLiveRequestInfo({
+    target,
+    limit,
+    order_by: orderBy,
+    include_subdomains: true,
+  });
+
+  const response = await api.backlinksLive([req]);
+  const task = assertOk(response);
+
+  const result = (task as { result?: Array<{ items?: unknown[] }> })
+    .result?.[0];
+  return (result?.items ?? []) as BacklinksLiveItem[];
 }

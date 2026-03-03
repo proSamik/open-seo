@@ -19,7 +19,6 @@ import { useSearchHistory } from "@/client/hooks/useSearchHistory";
 import { keywordsSearchSchema } from "@/types/schemas/keywords";
 import {
   Search,
-  SlidersHorizontal,
   Save,
   FileDown,
   Globe,
@@ -196,9 +195,9 @@ function KeywordResearchPage() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   // --- Local-only UI state ---
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedKeyword, setSelectedKeyword] =
     useState<KeywordResearchRow | null>(null);
+  const [serpKeyword, setSerpKeyword] = useState<string | null>(null);
 
   const controlsForm = useForm({
     defaultValues: {
@@ -300,7 +299,7 @@ function KeywordResearchPage() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   // SERP analysis — the keyword currently being viewed for SERP
-  const [serpKeyword, setSerpKeyword] = useState<string | null>(null);
+  // const [serpKeyword, setSerpKeyword] = useState<string | null>(null); // Moved up
   const [serpPage, setSerpPage] = useState(0);
   const SERP_PAGE_SIZE = 10;
 
@@ -738,6 +737,121 @@ function KeywordResearchPage() {
         {searchInputError ? (
           <p className="mt-2 text-sm text-error">{searchInputError}</p>
         ) : null}
+
+        {/* Filters Area (Always Visible) */}
+        <div className="mt-3 bg-base-100 border border-base-300 rounded-xl px-4 py-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold">Refine results</p>
+              {activeFilterCount > 0 && (
+                <span className="badge badge-xs badge-primary border-0 text-primary-content">
+                  {activeFilterCount} active
+                </span>
+              )}
+            </div>
+            <button
+              className="btn btn-xs btn-ghost gap-1"
+              onClick={resetFilters}
+              disabled={activeFilterCount === 0}
+            >
+              <RotateCcw className="size-3" />
+              Clear all
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <label className="form-control gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
+                Include Terms
+              </span>
+              <input
+                className="input input-bordered input-sm bg-base-100"
+                placeholder="audit, checker, template"
+                value={pendingInclude}
+                onChange={(e) => setPendingInclude(e.target.value)}
+              />
+            </label>
+            <label className="form-control gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
+                Exclude Terms
+              </span>
+              <input
+                className="input input-bordered input-sm bg-base-100"
+                placeholder="jobs, salary, course"
+                value={pendingExclude}
+                onChange={(e) => setPendingExclude(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
+                Search Volume
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Min"
+                  type="number"
+                  value={pendingMinVol}
+                  onChange={(e) => setPendingMinVol(e.target.value)}
+                />
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Max"
+                  type="number"
+                  value={pendingMaxVol}
+                  onChange={(e) => setPendingMaxVol(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
+                CPC (USD)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Min"
+                  type="number"
+                  step="0.01"
+                  value={pendingMinCpc}
+                  onChange={(e) => setPendingMinCpc(e.target.value)}
+                />
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Max"
+                  type="number"
+                  step="0.01"
+                  value={pendingMaxCpc}
+                  onChange={(e) => setPendingMaxCpc(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
+                Difficulty
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Min"
+                  type="number"
+                  value={pendingMinKd}
+                  onChange={(e) => setPendingMinKd(e.target.value)}
+                />
+                <input
+                  className="input input-bordered input-xs"
+                  placeholder="Max"
+                  type="number"
+                  value={pendingMaxKd}
+                  onChange={(e) => setPendingMaxKd(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 2. Content area */}
@@ -955,19 +1069,6 @@ function KeywordResearchPage() {
               <div className="flex-1 flex flex-col min-w-0 border border-base-300 rounded-xl bg-base-100 overflow-hidden">
                 {/* Table toolbar */}
                 <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-base-300">
-                  <button
-                    className={`btn btn-ghost btn-sm gap-1.5 ${showFilters ? "btn-active" : ""}`}
-                    onClick={() => setShowFilters((p) => !p)}
-                    title="Toggle table filters"
-                  >
-                    <SlidersHorizontal className="size-3.5" />
-                    Filters
-                    {activeFilterCount > 0 && (
-                      <span className="badge badge-xs badge-primary border-0 text-primary-content">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </button>
                   <span className="text-sm text-base-content/60">
                     {selectedRows.size > 0
                       ? `${selectedRows.size} of ${filteredRows.length} selected`
@@ -991,124 +1092,6 @@ function KeywordResearchPage() {
                     <span className="hidden lg:inline">Export</span>
                   </button>
                 </div>
-
-                {showFilters && (
-                  <div className="shrink-0 border-b border-base-300 bg-gradient-to-b from-base-100 to-base-200/30 px-4 py-3 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold">
-                          Refine table results
-                        </p>
-                        {activeFilterCount > 0 && (
-                          <span className="badge badge-xs badge-primary border-0 text-primary-content">
-                            {activeFilterCount} active
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        className="btn btn-xs btn-ghost gap-1"
-                        onClick={resetFilters}
-                        disabled={activeFilterCount === 0}
-                      >
-                        <RotateCcw className="size-3" />
-                        Clear all
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <label className="form-control gap-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                          Include Terms
-                        </span>
-                        <input
-                          className="input input-bordered input-sm bg-base-100"
-                          placeholder="audit, checker, template"
-                          value={pendingInclude}
-                          onChange={(e) => setPendingInclude(e.target.value)}
-                        />
-                      </label>
-                      <label className="form-control gap-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                          Exclude Terms
-                        </span>
-                        <input
-                          className="input input-bordered input-sm bg-base-100"
-                          placeholder="jobs, salary, course"
-                          value={pendingExclude}
-                          onChange={(e) => setPendingExclude(e.target.value)}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
-                      <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                          Search Volume
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Min"
-                            type="number"
-                            value={pendingMinVol}
-                            onChange={(e) => setPendingMinVol(e.target.value)}
-                          />
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Max"
-                            type="number"
-                            value={pendingMaxVol}
-                            onChange={(e) => setPendingMaxVol(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                          CPC (USD)
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Min"
-                            type="number"
-                            step="0.01"
-                            value={pendingMinCpc}
-                            onChange={(e) => setPendingMinCpc(e.target.value)}
-                          />
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Max"
-                            type="number"
-                            step="0.01"
-                            value={pendingMaxCpc}
-                            onChange={(e) => setPendingMaxCpc(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                          Difficulty
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Min"
-                            type="number"
-                            value={pendingMinKd}
-                            onChange={(e) => setPendingMinKd(e.target.value)}
-                          />
-                          <input
-                            className="input input-bordered input-xs"
-                            placeholder="Max"
-                            type="number"
-                            value={pendingMaxKd}
-                            onChange={(e) => setPendingMaxKd(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Table header */}
                 <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-base-300 bg-base-100 text-xs text-base-content/60 font-medium">
@@ -1284,18 +1267,7 @@ function KeywordResearchPage() {
 
                 {/* Mobile table toolbar */}
                 <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-base-300 bg-base-100">
-                  <button
-                    className={`btn btn-ghost btn-xs gap-1 ${showFilters ? "btn-active" : ""}`}
-                    onClick={() => setShowFilters((p) => !p)}
-                  >
-                    <SlidersHorizontal className="size-3.5" />
-                    Filters
-                    {activeFilterCount > 0 && (
-                      <span className="badge badge-xs badge-primary border-0 text-primary-content">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </button>
+                  {/* Filters moved to the top */}
                   <span className="text-xs text-base-content/60">
                     {selectedRows.size > 0
                       ? `${selectedRows.size} selected`
@@ -1318,92 +1290,7 @@ function KeywordResearchPage() {
                   </button>
                 </div>
 
-                {showFilters && (
-                  <div className="shrink-0 border-b border-base-300 bg-gradient-to-b from-base-100 to-base-200/30 px-4 py-3 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold">
-                          Refine table results
-                        </p>
-                        {activeFilterCount > 0 && (
-                          <span className="badge badge-xs badge-primary border-0 text-primary-content">
-                            {activeFilterCount}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        className="btn btn-xs btn-ghost gap-1"
-                        onClick={resetFilters}
-                        disabled={activeFilterCount === 0}
-                      >
-                        <RotateCcw className="size-3" />
-                        Clear
-                      </button>
-                    </div>
 
-                    <div className="grid grid-cols-1 gap-2">
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Include terms (audit, checker)"
-                        value={pendingInclude}
-                        onChange={(e) => setPendingInclude(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Exclude terms (jobs, course)"
-                        value={pendingExclude}
-                        onChange={(e) => setPendingExclude(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Min volume"
-                        type="number"
-                        value={pendingMinVol}
-                        onChange={(e) => setPendingMinVol(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Max volume"
-                        type="number"
-                        value={pendingMaxVol}
-                        onChange={(e) => setPendingMaxVol(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Min CPC"
-                        type="number"
-                        step="0.01"
-                        value={pendingMinCpc}
-                        onChange={(e) => setPendingMinCpc(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Max CPC"
-                        type="number"
-                        step="0.01"
-                        value={pendingMaxCpc}
-                        onChange={(e) => setPendingMaxCpc(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Min difficulty"
-                        type="number"
-                        value={pendingMinKd}
-                        onChange={(e) => setPendingMinKd(e.target.value)}
-                      />
-                      <input
-                        className="input input-bordered input-sm bg-base-100"
-                        placeholder="Max difficulty"
-                        type="number"
-                        value={pendingMaxKd}
-                        onChange={(e) => setPendingMaxKd(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
 
                 {/* Mobile keyword cards */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
