@@ -6,8 +6,64 @@ import { useForm } from "@tanstack/react-form";
 import { sortBy } from "remeda";
 import { getBacklinksOverview } from "@/serverFunctions/backlinks";
 import { backlinksSearchSchema } from "@/types/schemas/backlinks";
-import { Search, Globe, AlertCircle } from "lucide-react";
+import { Search, Globe, AlertCircle, Download, ChevronDown, Copy } from "lucide-react";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
+import { toast } from "sonner";
+
+function csvEscape(value: string | number | null | undefined | boolean): string {
+  if (value == null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return `"${text}"`;
+}
+
+function backlinksToCsv(
+  rows: Array<{
+    urlFrom: string | null;
+    urlTo: string | null;
+    anchor: string | null;
+    domainFrom: string | null;
+    domainFromRank: number | null;
+    pageFromRank: number | null;
+    dofollow: boolean | null;
+    firstSeen: string | null;
+  }>
+): string {
+  const headers = [
+    "Domain From",
+    "URL From",
+    "Anchor",
+    "URL To",
+    "Domain Rank",
+    "Page Rank",
+    "Dofollow",
+    "First Seen",
+  ];
+  const lines = rows.map((row) =>
+    [
+      row.domainFrom,
+      row.urlFrom,
+      row.anchor,
+      row.urlTo,
+      row.domainFromRank,
+      row.pageFromRank,
+      row.dofollow,
+      row.firstSeen ? new Date(row.firstSeen).toLocaleDateString() : null,
+    ]
+      .map(csvEscape)
+      .join(",")
+  );
+  return [headers.map(csvEscape).join(","), ...lines].join("\n");
+}
+
+function downloadCsv(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export const Route = createFileRoute("/p/$projectId/backlinks")({
   validateSearch: backlinksSearchSchema,
@@ -117,10 +173,13 @@ function BacklinksPage() {
 
   const applySort = useCallback(
     (nextSort: SortMode, nextOrder: SortOrder) => {
+      const vals = controlsForm.state.values;
       controlsForm.setFieldValue("sort", nextSort);
       setSearchParams({
         sort: nextSort,
         order: nextOrder,
+        domain: vals.domain,
+        subdomains: vals.subdomains ? undefined : vals.subdomains,
       });
     },
     [controlsForm, setSearchParams],
@@ -289,8 +348,8 @@ function BacklinksPage() {
           </div>
         ) : (
           <div className="card bg-base-100 border border-base-300 mt-4 overflow-hidden flex-1 flex flex-col">
-            <div className="flex justify-end p-4 border-b border-base-300 shrink-0">
-              <label className="input input-bordered input-sm w-full max-w-xs flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 p-4 border-b border-base-300 shrink-0 bg-base-100">
+              <label className="input input-bordered input-sm flex-1 max-w-xs flex items-center gap-2">
                 <Search className="size-4 text-base-content/60" />
                 <input
                   placeholder="Filter by URL or anchor text"
@@ -301,6 +360,43 @@ function BacklinksPage() {
                   }}
                 />
               </label>
+              <div className="dropdown dropdown-end">
+                <div tabIndex={0} role="button" className="btn btn-sm gap-1">
+                  <Download className="size-4" />
+                  Export
+                  <ChevronDown className="size-3 opacity-60" />
+                </div>
+                <ul
+                  tabIndex={0}
+                  className="dropdown-content z-10 menu p-2 shadow-lg bg-base-100 border border-base-300 rounded-box w-48"
+                >
+                  <li>
+                    <button
+                      onClick={async () => {
+                        const text = JSON.stringify(filteredData, null, 2);
+                        await navigator.clipboard.writeText(text);
+                        toast.success("Copied data");
+                      }}
+                    >
+                      <Copy className="size-4" />
+                      Copy JSON Array
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        const target = controlsForm.state.values.domain || "domain";
+                        const rows = backlinksToCsv(filteredData);
+                        downloadCsv(rows, `${target}-backlinks.csv`);
+                        toast.success("Exported CSV");
+                      }}
+                    >
+                      <Download className="size-4" />
+                      Download CSV
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
             
             <div className="overflow-auto flex-1 h-[500px]">

@@ -327,10 +327,17 @@ function DomainOverviewPage() {
 
   const applySort = useCallback(
     (nextSort: DomainSortMode, nextOrder: SortOrder) => {
+      const vals = controlsForm.state.values;
       controlsForm.setFieldValue("sort", nextSort);
       setSearchParams({
         sort: toSortSearchParam(nextSort),
         order: toSortOrderSearchParam(nextSort, nextOrder),
+        domain: vals.domain,
+        subdomains: vals.subdomains ? undefined : vals.subdomains,
+        minKd: vals.minKd ? vals.minKd : undefined,
+        maxKd: vals.maxKd ? vals.maxKd : undefined,
+        minVol: vals.minVol ? vals.minVol : undefined,
+        maxVol: vals.maxVol ? vals.maxVol : undefined,
       });
     },
     [controlsForm, setSearchParams],

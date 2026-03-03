@@ -11,8 +11,8 @@ import {
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as React from "react";
-import { useState } from "react";
-import { Menu, ChevronsUpDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, ChevronsUpDown, Sun, Moon } from "lucide-react";
 import { DefaultCatchBoundary } from "@/client/components/DefaultCatchBoundary";
 import { NotFound } from "@/client/components/NotFound";
 import appCss from "@/client/styles/app.css?url";
@@ -74,6 +74,25 @@ export const Route = createRootRoute({
 function AppLayout() {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") {
+      setTheme(stored);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
+    } else {
+      setTheme("light");
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   // Extract projectId from the current path
   const projectIdMatch = location.pathname.match(/^\/p\/([^/]+)/);
@@ -134,16 +153,34 @@ function AppLayout() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Desktop: project switcher (right-aligned) */}
-        <div className="flex-none hidden md:flex">
-          <div
-            className="tooltip tooltip-left before:whitespace-nowrap"
-            data-tip="Multiple projects coming soon"
+        {/* Right side controls */}
+        <div className="flex-none flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button
+            className="btn btn-ghost btn-circle btn-sm mr-1"
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+            title="Toggle theme"
           >
-            <button className="btn btn-ghost btn-sm font-medium text-sm gap-1 cursor-default">
-              <span className="truncate">Default</span>
-              <ChevronsUpDown className="size-3.5 shrink-0 text-base-content/40" />
-            </button>
+            {!mounted ? (
+               <Moon className="size-4 opacity-0" />
+            ) : theme === "dark" ? (
+              <Sun className="size-4" />
+            ) : (
+              <Moon className="size-4" />
+            )}
+          </button>
+
+          {/* Desktop: project switcher */}
+          <div className="hidden md:flex">
+            <div
+              className="tooltip tooltip-left before:whitespace-nowrap"
+              data-tip="Multiple projects coming soon"
+            >
+              <button className="btn btn-ghost btn-sm font-medium text-sm gap-1 cursor-default">
+                <span className="truncate">Default</span>
+                <ChevronsUpDown className="size-3.5 shrink-0 text-base-content/40" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
