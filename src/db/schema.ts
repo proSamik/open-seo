@@ -95,6 +95,34 @@ export const keywordMetrics = sqliteTable(
   ],
 );
 
+// Backlinks cache
+export const backlinkResults = sqliteTable(
+  "backlink_results",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    target: text("target").notNull(),
+    includeSubdomains: integer("include_subdomains", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    // We'll store the backlinks array as a JSON string
+    resultsJson: text("results_json").notNull(),
+    hasData: integer("has_data", { mode: "boolean" }).notNull().default(false),
+    fetchedAt: text("fetched_at")
+      .notNull()
+      .default(sql`(current_timestamp)`),
+  },
+  (table) => [
+    uniqueIndex("backlink_results_unique_project_target_subdomains").on(
+      table.projectId,
+      table.target,
+      table.includeSubdomains,
+    ),
+  ],
+);
+
 // ============================================================================
 // Site Audit tables
 // ============================================================================
