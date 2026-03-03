@@ -7,8 +7,10 @@ import { logServerError } from "@/server/lib/logger";
 import { toClientError } from "@/server/lib/errors";
 
 const backlinksInputSchema = z.object({
+  projectId: z.string().min(1, "Project is required"),
   target: z.string().min(1, "Domain is required"),
   includeSubdomains: z.boolean().default(true),
+  forceFetch: z.boolean().optional(),
 });
 
 export const getBacklinksOverview = createServerFn({ method: "POST" })
@@ -17,8 +19,10 @@ export const getBacklinksOverview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     try {
       return await BacklinkService.getBacklinks({
+        projectId: data.projectId,
         target: data.target,
         includeSubdomains: data.includeSubdomains,
+        forceFetch: data.forceFetch,
       });
     } catch (error) {
       logServerError("backlinks.overview", error, {

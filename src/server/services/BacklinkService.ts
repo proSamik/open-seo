@@ -2,8 +2,10 @@ import {
   fetchBacklinksRaw,
   normalizeDomainInput,
 } from "@/server/lib/dataforseo";
-import { buildCacheKey, getCached, setCached } from "@/server/lib/kv-cache";
 import { logServerError } from "@/server/lib/logger";
+import { db } from "@/db";
+import { backlinkResults } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 const BACKLINKS_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
@@ -24,20 +26,41 @@ export type BacklinksResult = {
 };
 
 async function getBacklinks(input: {
+  projectId: string;
   target: string;
   includeSubdomains: boolean;
+  forceFetch?: boolean;
 }): Promise<BacklinksResult> {
   const target = normalizeDomainInput(input.target, input.includeSubdomains);
 
-  // --- KV cache check ---
-  const cacheKey = buildCacheKey("backlinks", {
-    target,
-    includeSubdomains: input.includeSubdomains,
-  });
+  // --- Check Database Cache ---
+  if (!input.forceFetch) {
+    try {
+      const cached = await db
+        .select()
+        .from(backlinkResults)
+        .where(
+          and(
+            eq(backlinkResults.projectId, input.projectId),
+            eq(backlinkResults.target, target),
+            eq(backlinkResults.includeSubdomains, input.includeSubdomains)
+          )
+        )
+        .limit(1)
+        .get();
 
-  const cached = await getCached<BacklinksResult>(cacheKey);
-  if (cached && cached.hasData) {
-    return cached;
+      if (cached) {
+        return {
+          target,
+          hasData: cached.hasData,
+          backlinks: JSON.parse(cached.resultsJson),
+          fetchedAt: cached.fetchedAt,
+        };
+      }
+    } catch (dbError) {
+      // Log but continue to fetch if DB read fails
+      logServerError("backlinks.db-read", dbError, { target, projectId: input.projectId });
+    }
   }
 
   // --- Fetch fresh from DataForSEO ---
@@ -66,14 +89,36 @@ async function getBacklinks(input: {
     fetchedAt: nowIso,
   };
 
-  // Persist to KV (fire-and-forget; don't block response)
-  if (result.hasData) {
-    void setCached(cacheKey, result, BACKLINKS_TTL_SECONDS).catch((error) => {
-      logServerError("backlinks.cache-write", error, {
-        target,
-      });
-    });
-  }
+  // Persist to DB (fire-and-forget; don't block response)
+  void (async () => {
+    try {
+      await db
+        .insert(backlinkResults)
+        .values({
+          id: crypto.randomUUID(),
+          projectId: input.projectId,
+          target,
+          includeSubdomains: input.includeSubdomains,
+          resultsJson: JSON.stringify(backlinks),
+          hasData: result.hasData,
+          fetchedAt: nowIso,
+        })
+        .onConflictDoUpdate({
+          target: [
+            backlinkResults.projectId,
+            backlinkResults.target,
+            backlinkResults.includeSubdomains,
+          ],
+          set: {
+            resultsJson: JSON.stringify(backlinks),
+            hasData: result.hasData,
+            fetchedAt: nowIso,
+          },
+        });
+    } catch (error) {
+      logServerError("backlinks.db-write", error, { target, projectId: input.projectId });
+    }
+  })();
 
   return result;
 }

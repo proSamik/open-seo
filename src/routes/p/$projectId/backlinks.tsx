@@ -152,8 +152,10 @@ function BacklinksPage() {
 
   const backlinksMutation = useMutation({
     mutationFn: (data: {
+      projectId: string;
       target: string;
       includeSubdomains: boolean;
+      forceFetch?: boolean;
     }) => getBacklinksOverview({ data }),
   });
   const isLoading = backlinksMutation.isPending;
@@ -208,7 +210,7 @@ function BacklinksPage() {
     [applySort, currentSortOrder, sortMode],
   );
 
-  const onSearch = () => {
+  const onSearch = (forceFetch = false) => {
     const values = controlsForm.state.values;
     const rawTarget = values.domain;
     if (!rawTarget.trim()) {
@@ -230,8 +232,10 @@ function BacklinksPage() {
 
     backlinksMutation.mutate(
       {
+        projectId,
         target: rawTarget,
         includeSubdomains: values.subdomains,
+        forceFetch,
       },
       {
         onSuccess: (response) => {
@@ -252,7 +256,12 @@ function BacklinksPage() {
 
   const handleSearchSubmit = (event: FormEvent) => {
     event.preventDefault();
-    onSearch();
+    onSearch(false);
+  };
+
+  const handleFetchNew = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    onSearch(true);
   };
 
   return (
@@ -308,13 +317,27 @@ function BacklinksPage() {
                 )}
               </controlsForm.Field>
 
-              <button
-                type="submit"
-                className="btn btn-primary lg:col-span-2"
-                disabled={isLoading}
-              >
-                {isLoading ? "Searching..." : "Search"}
-              </button>
+              <div className="flex gap-2 lg:col-span-2">
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-1"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Searching..." : "Search"}
+                </button>
+
+                {result?.hasData && (
+                  <button
+                    type="button"
+                    onClick={handleFetchNew}
+                    className="btn btn-outline btn-primary flex-1 whitespace-nowrap px-2"
+                    disabled={isLoading}
+                    title="Fetch fresh data from DataForSEO API"
+                  >
+                    Fetch New
+                  </button>
+                )}
+              </div>
             </form>
 
             {domainError ? (
@@ -403,6 +426,7 @@ function BacklinksPage() {
 
                         backlinksMutation.mutate(
                           {
+                            projectId,
                             target: item.domain,
                             includeSubdomains: item.subdomains,
                           },
