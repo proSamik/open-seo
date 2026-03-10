@@ -53,6 +53,15 @@ export function logServerError(
       ? sanitizeValue("cause", (error as { cause?: unknown }).cause)
       : undefined;
 
+  const apiResponse =
+    error && typeof error === "object" && "response" in error
+      ? sanitizeValue("response", (error as { response?: unknown }).response)
+      : undefined;
+  const apiStatus =
+    error && typeof error === "object" && "status" in error
+      ? (error as { status?: unknown }).status
+      : undefined;
+
   console.error(
     JSON.stringify({
       level: "error",
@@ -62,6 +71,8 @@ export function logServerError(
       message: safeErrorMessage,
       stack: safeStack,
       cause: safeCause,
+      apiStatus,
+      apiResponse,
       context: sanitizeContext(context),
     }),
   );
