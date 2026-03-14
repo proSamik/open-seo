@@ -64,6 +64,41 @@ type EnrichedKeyword = {
 
 type KeywordSource = "related" | "suggestions" | "ideas";
 
+function buildDataForSeoFilters(
+  prefix: string,
+  params: {
+    minVol?: number;
+    maxVol?: number;
+    minKd?: number;
+    maxKd?: number;
+  },
+): unknown[] | undefined {
+  const filters: unknown[] = [];
+
+  if (params.minVol !== undefined) {
+    filters.push([`${prefix}keyword_info.search_volume`, ">=", params.minVol]);
+  }
+  if (params.maxVol !== undefined) {
+    filters.push([`${prefix}keyword_info.search_volume`, "<=", params.maxVol]);
+  }
+  if (params.minKd !== undefined) {
+    filters.push([`${prefix}keyword_properties.keyword_difficulty`, ">=", params.minKd]);
+  }
+  if (params.maxKd !== undefined) {
+    filters.push([`${prefix}keyword_properties.keyword_difficulty`, "<=", params.maxKd]);
+  }
+
+  if (filters.length === 0) return undefined;
+
+  const combined: unknown[] = [];
+  for (let i = 0; i < filters.length; i++) {
+    if (i > 0) combined.push("and");
+    combined.push(filters[i]);
+  }
+
+  return combined;
+}
+
 function parseMonthlySearches(
   payload: string | null,
   context: { keyword: string; projectId: string },
@@ -82,6 +117,7 @@ async function fetchRelatedKeywordsWithData(
   locationCode: number,
   languageCode: string,
   limit: number,
+  filters?: unknown[],
 ): Promise<EnrichedKeyword[]> {
   // Fetch from API - data is embedded in the response
   const items = await fetchRelatedKeywordsRaw(
@@ -90,6 +126,7 @@ async function fetchRelatedKeywordsWithData(
     languageCode,
     limit,
     3, // depth=3 for ~584 keywords
+    filters,
   );
 
   // Map embedded data directly from the response
@@ -173,16 +210,24 @@ async function fetchKeywordRowsWithFallback(
   locationCode: number,
   languageCode: string,
   limit: number,
+  filterParams: {
+    minVol?: number;
+    maxVol?: number;
+    minKd?: number;
+    maxKd?: number;
+  },
 ): Promise<{
   rows: EnrichedKeyword[];
   source: KeywordSource;
   usedFallback: boolean;
 }> {
+  const relatedFilters = buildDataForSeoFilters("keyword_data.", filterParams);
   const relatedRows = await fetchRelatedKeywordsWithData(
     seedKeyword,
     locationCode,
     languageCode,
     limit,
+    relatedFilters,
   );
 
   if (relatedRows.length > 0) {
@@ -193,12 +238,15 @@ async function fetchKeywordRowsWithFallback(
     };
   }
 
+  const defaultFilters = buildDataForSeoFilters("", filterParams);
+
   const suggestionRows = await fetchKeywordDataRows(
     await fetchKeywordSuggestionsRaw(
       seedKeyword,
       locationCode,
       languageCode,
       limit,
+      defaultFilters,
     ),
   );
 
@@ -211,7 +259,7 @@ async function fetchKeywordRowsWithFallback(
   }
 
   const ideaRows = await fetchKeywordDataRows(
-    await fetchKeywordIdeasRaw(seedKeyword, locationCode, languageCode, limit),
+    await fetchKeywordIdeasRaw(seedKeyword, locationCode, languageCode, limit, defaultFilters),
   );
 
   return {
@@ -248,6 +296,10 @@ async function research(
     languageCode: input.languageCode,
     resultLimit: input.resultLimit,
     depth: 3, // bump when depth changes to bust stale cache
+    minVol: input.minVol,
+    maxVol: input.maxVol,
+    minKd: input.minKd,
+    maxKd: input.maxKd,
   });
 
   type CachedResult = {
@@ -277,6 +329,12 @@ async function research(
     input.locationCode,
     input.languageCode,
     input.resultLimit,
+    {
+      minVol: input.minVol,
+      maxVol: input.maxVol,
+      minKd: input.minKd,
+      maxKd: input.maxKd,
+    },
   );
 
   // Cache the result

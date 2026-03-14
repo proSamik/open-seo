@@ -318,6 +318,10 @@ function KeywordResearchPage() {
       locationCode: number;
       languageCode: string;
       resultLimit: ResultLimit;
+      minVol?: number;
+      maxVol?: number;
+      minKd?: number;
+      maxKd?: number;
     }) => researchKeywords({ data }),
   });
   const isLoading = researchMutation.isPending;
@@ -481,6 +485,10 @@ function KeywordResearchPage() {
         q: input,
         loc: activeLocation === 2840 ? undefined : activeLocation,
         kLimit: activeResultLimit === 150 ? undefined : activeResultLimit,
+        minVol: pendingMinVol ? pendingMinVol : undefined,
+        maxVol: pendingMaxVol ? pendingMaxVol : undefined,
+        minKd: pendingMinKd ? pendingMinKd : undefined,
+        maxKd: pendingMaxKd ? pendingMaxKd : undefined,
       };
     void navigate({
       search: (prev) => ({ ...prev, ...searchUpdates }),
@@ -502,6 +510,10 @@ function KeywordResearchPage() {
         locationCode: activeLocation,
         languageCode,
         resultLimit: activeResultLimit,
+        minVol: pendingMinVol ? Number(pendingMinVol) : undefined,
+        maxVol: pendingMaxVol ? Number(pendingMaxVol) : undefined,
+        minKd: pendingMinKd ? Number(pendingMinKd) : undefined,
+        maxKd: pendingMaxKd ? Number(pendingMaxKd) : undefined,
       },
       {
         onSuccess: (result) => {
@@ -663,10 +675,9 @@ function KeywordResearchPage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* 1. Search bar */}
       <div className="shrink-0 px-4 md:px-6 pt-4 pb-2 max-w-8xl mx-auto w-full">
-        <form
-          className="bg-base-100 border border-base-300 rounded-xl px-4 py-3 flex flex-wrap items-center gap-2"
-          onSubmit={handleSearchSubmit}
-        >
+        <div className="bg-base-100 border border-base-300 rounded-xl overflow-hidden">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="px-4 py-3 flex flex-wrap items-center gap-2">
           {/* Keyword input */}
           <label
             className={`input input-bordered input-sm flex items-center gap-2 flex-1 min-w-0 max-w-md ${searchInputError ? "input-error" : ""}`}
@@ -731,9 +742,56 @@ function KeywordResearchPage() {
             className="btn btn-primary btn-sm px-6 font-semibold"
             disabled={isLoading}
           >
-            {isLoading ? "Searching..." : "Search"}
-          </button>
+              {isLoading ? "Searching..." : "Search"}
+            </button>
+          </div>
+          
+          {/* New Backend Filters Area */}
+          <div className="bg-base-200/50 border-t border-base-300 px-4 py-3">
+            <div className="flex flex-wrap gap-4 items-center">
+              <span className="text-sm font-medium text-base-content/70">Filters:</span>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-base-content/60">KD</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="input input-bordered input-xs w-16"
+                  value={pendingMinKd}
+                  onChange={(e) => setPendingMinKd(e.target.value)}
+                />
+                <span className="text-xs text-base-content/40">-</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="input input-bordered input-xs w-16"
+                  value={pendingMaxKd}
+                  onChange={(e) => setPendingMaxKd(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-base-content/60">Volume</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="input input-bordered input-xs w-20"
+                  value={pendingMinVol}
+                  onChange={(e) => setPendingMinVol(e.target.value)}
+                />
+                <span className="text-xs text-base-content/40">-</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="input input-bordered input-xs w-20"
+                  value={pendingMaxVol}
+                  onChange={(e) => setPendingMaxVol(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
         </form>
+      </div>
         {searchInputError ? (
           <p className="mt-2 text-sm text-error">{searchInputError}</p>
         ) : null}
@@ -785,28 +843,7 @@ function KeywordResearchPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
-            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                Search Volume
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  className="input input-bordered input-xs"
-                  placeholder="Min"
-                  type="number"
-                  value={pendingMinVol}
-                  onChange={(e) => setPendingMinVol(e.target.value)}
-                />
-                <input
-                  className="input input-bordered input-xs"
-                  placeholder="Max"
-                  type="number"
-                  value={pendingMaxVol}
-                  onChange={(e) => setPendingMaxVol(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
+            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2 lg:col-start-1">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
                 CPC (USD)
               </p>
@@ -826,27 +863,6 @@ function KeywordResearchPage() {
                   step="0.01"
                   value={pendingMaxCpc}
                   onChange={(e) => setPendingMaxCpc(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="rounded-lg border border-base-300 bg-base-100 p-2.5 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/60">
-                Difficulty
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  className="input input-bordered input-xs"
-                  placeholder="Min"
-                  type="number"
-                  value={pendingMinKd}
-                  onChange={(e) => setPendingMinKd(e.target.value)}
-                />
-                <input
-                  className="input input-bordered input-xs"
-                  placeholder="Max"
-                  type="number"
-                  value={pendingMaxKd}
-                  onChange={(e) => setPendingMaxKd(e.target.value)}
                 />
               </div>
             </div>

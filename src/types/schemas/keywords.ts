@@ -8,6 +8,10 @@ export const researchKeywordsSchema = z.object({
     .union([z.literal(150), z.literal(300), z.literal(500)])
     .default(150),
   mode: z.literal("related").optional().default("related"),
+  minVol: z.number().int().nonnegative().optional(),
+  maxVol: z.number().int().nonnegative().optional(),
+  minKd: z.number().int().nonnegative().max(100).optional(),
+  maxKd: z.number().int().nonnegative().max(100).optional(),
 });
 
 export const createProjectSchema = z.object({

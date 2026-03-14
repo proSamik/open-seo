@@ -7,7 +7,6 @@ import { db } from "@/db";
 import { backlinkResults } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
-const BACKLINKS_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 export type BacklinksResult = {
   target: string;

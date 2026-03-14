@@ -109,12 +109,14 @@ type RelatedKeywordItem = {
   };
 };
 
+// eslint-disable-next-line max-params
 export async function fetchRelatedKeywordsRaw(
   keyword: string,
   locationCode: number,
   languageCode: string,
   limit: number,
   depth: number = 3,
+  filters?: unknown[],
 ): Promise<RelatedKeywordItem[]> {
   const api = getLabsApi();
   const req = new DataforseoLabsGoogleRelatedKeywordsLiveRequestInfo({
@@ -125,6 +127,7 @@ export async function fetchRelatedKeywordsRaw(
     depth,
     include_clickstream_data: true,
     include_serp_info: false,
+    filters,
   });
 
   const response = await api.googleRelatedKeywordsLive([req]);
@@ -164,6 +167,7 @@ export async function fetchKeywordSuggestionsRaw(
   locationCode: number,
   languageCode: string,
   limit: number,
+  filters?: unknown[],
 ): Promise<LabsKeywordDataItem[]> {
   const api = getLabsApi();
   const req = new DataforseoLabsGoogleKeywordSuggestionsLiveRequestInfo({
@@ -176,6 +180,7 @@ export async function fetchKeywordSuggestionsRaw(
     include_seed_keyword: true,
     ignore_synonyms: false,
     exact_match: false,
+    filters,
   });
 
   const response = await api.googleKeywordSuggestionsLive([req]);
@@ -191,6 +196,7 @@ export async function fetchKeywordIdeasRaw(
   locationCode: number,
   languageCode: string,
   limit: number,
+  filters?: unknown[],
 ): Promise<LabsKeywordDataItem[]> {
   const api = getLabsApi();
   const req = new DataforseoLabsGoogleKeywordIdeasLiveRequestInfo({
@@ -202,6 +208,7 @@ export async function fetchKeywordIdeasRaw(
     include_serp_info: false,
     ignore_synonyms: false,
     closely_variants: false,
+    filters,
   });
 
   const response = await api.googleKeywordIdeasLive([req]);
